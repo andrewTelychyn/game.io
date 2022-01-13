@@ -12,7 +12,7 @@ export class Player implements Entity{
 
     public maxSpeed: number = 3;
 
-    constructor(coord: [number, number]) {
+    constructor(coord: [number, number], private limits: [number, number]) {
         this.id = Date.now() + Math.round(Math.random() * 100);
 
         this.location = new Vector(coord);
@@ -27,6 +27,16 @@ export class Player implements Entity{
     }
 
     public move(direct: [number, number]): void {
-        this.velocity = new Vector(direct).scale(this.maxSpeed);
+        const vector = new Vector(direct).scale(this.maxSpeed);
+        if (this.isLimit(vector.values as [number, number])) return;
+        else this.velocity = vector;
+    }
+
+    private isLimit(values: [number, number]): boolean {
+        const [vx, vy] = values;
+        const [x, y] = this.location.values;
+        const [maxx, maxy] = this.limits;
+
+        return vx + x < 0 || vx + x > maxx || vy + y < 0 || vy + y > maxy
     }
 }

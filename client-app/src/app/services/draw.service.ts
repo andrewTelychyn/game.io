@@ -2,9 +2,8 @@ import { ElementRef, Injectable } from "@angular/core";
 import { interval } from "rxjs";
 import { Vector } from "ts-matrix";
 import { Entity } from "../interfaces/entity.interface";
+import { ConfigSevice } from "./config.service";
 import { DataService } from "./data.service";
-
-const INTERVAL_TIME = 50;
 
 @Injectable({
     providedIn: 'root'
@@ -14,7 +13,10 @@ export class DrawService {
     private canvas!: ElementRef<HTMLCanvasElement>;
     private mousePosition: Vector | null = null;
 
-    constructor(private dataService: DataService) {}
+    constructor(
+        private dataService: DataService,
+        private configService: ConfigSevice,
+    ) {}
 
     public init(canvas: ElementRef<HTMLCanvasElement>): [number, number] {
         this.canvas = canvas;
@@ -47,7 +49,9 @@ export class DrawService {
     }
 
     private startDrawingIteration() {
-        interval(INTERVAL_TIME).subscribe((val) => {
+        const config = this.configService.configSubject.value;
+
+        interval(config.drawingInterval).subscribe((val) => {
 
             this.context?.clearRect(0, 0, this.canvas.nativeElement.clientWidth, this.canvas.nativeElement.clientWidth);
             
@@ -55,11 +59,14 @@ export class DrawService {
         });
     }
 
-    private drawEntity(entity: Entity): void {
+    private drawEntity(entity: Entity, [cx, cy]: [number, number]): void {
         if (!this.context) return;
     
         this.context?.beginPath();
-        const [x, y] = entity.location.values;
+        let [x, y] = entity.location.values;
+        x -= cx;
+        y -= cy;
+
         this.context.arc(x, y, entity.size, 0, 2 * Math.PI, false);
         this.context.fillStyle = entity.color;
         this.context.fill();

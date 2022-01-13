@@ -1,10 +1,10 @@
 import { Injectable } from "@angular/core";
 import { Vector } from "ts-matrix";
+import { Config } from "../interfaces/config.interface";
 import { Entity } from "../interfaces/entity.interface";
 import { Food } from "../model/food.model";
 import { Player } from "../model/player.model";
-
-const MAX_FOOD_AMOUNT = 20;
+import { ConfigSevice } from "./config.service";
 
 @Injectable({
     providedIn: 'root'
@@ -16,25 +16,53 @@ export class DataService {
     private maxWidth!: number;
     private maxHeight!: number;
 
+    private canvasMaxWidth!: number;
+    private canvasMaxHeight!: number;
+
+    constructor(private configService: ConfigSevice) {}
+
+    get location (): [number, number] {
+        if (!this.player) return [0, 0];
+        return this.player.location.values as [number, number];
+    };
+
     public initGame(maxWidth: number, maxHeight: number): void {
-        this.maxHeight = maxHeight;
-        this.maxWidth = maxWidth;
+        const config = this.configService.configSubject.value;
+
+        this.canvasMaxHeight = maxHeight;
+        this.canvasMaxWidth = maxWidth;
+
+        [this.maxWidth, this.maxHeight] = config.fieldSize;
 
         this.player = new Player([
             Math.round(Math.random() * this.maxWidth),
             Math.round(Math.random() * this.maxHeight)
-        ]);
+        ], [this.maxWidth, this.maxHeight]);
+
         this.generateFood();
     }
 
-    public updateIteration(drawCallback: (entity: Entity) => void): void {
+    public updateIteration(drawCallback: (entity: Entity, corection: [number, number]) => void): void {
         if (!this.player) return;
 
         const increase = this.checkFoodColision();
-        this.foods.map(i => drawCallback(i));
+
+        let [x, y] = this.location;
+        const halfWidth = this.canvasMaxWidth / 2;
+        const halfHeight = this.canvasMaxHeight / 2;
+
+        if (x < halfWidth) x = 0;
+        else if (this.maxWidth - halfWidth < x) x = this.maxWidth - this.canvasMaxWidth;
+        else x -= halfWidth;
+
+        if (y < halfHeight) y = 0;
+        else if (this.maxHeight - halfHeight < y) y = this.maxHeight - this.canvasMaxHeight;
+        else y -= halfHeight;
+        
+        this.filterObjectOffRange(this.foods).map(e => drawCallback(e, [x, y]));
 
         this.player?.update(increase);
-        drawCallback(this.player);
+        drawCallback(this.player, [x, y]);
 
     }
 
@@ -48,6 +76,7 @@ export class DataService {
     }
 
     private checkFoodColision(): number {
+        const config = this.configService.configSubject.value;
         let sum: number = 0;
 
         this.foods = this.foods.filter((f) => {
@@ -55,7 +84,7 @@ export class DataService {
 
             if (this.getDistance(this.player.location, f.location) < this.player.size) {
                 console.log(this.getDistance(this.player.location, f.location), this.player.size);
-                sum += f.size;
+                sum += f.size * config.eatingCoef;
                 return false;
             }
             return true;
@@ -65,12 +94,24 @@ export class DataService {
     }
 
     private generateFood(): void {
-        for(let i = 0; i < MAX_FOOD_AMOUNT; i++) {
+        const config = this.configService.configSubject.value;
+
+        for(let i = 0; i < config.maxFood; i++) {
             this.foods.push(new Food([
                 Math.round(Math.random() * this.maxWidth),
                 Math.round(Math.random() * this.maxHeight)
             ]));
         }
+    }
+
+    private filterObjectOffRange(entities: Entity[]): Entity[] {
+        const [x, y] = this.location;
+
+        return entities.filter((e) => {
+            const [ex, ey] = e.location.values;
+
+            return Math.abs(x - ex) < this.canvasMaxWidth / 1.5 || Math.abs(y - ey) < this.canvasMaxHeight / 1.5;
+        });
     }
 
     private getDistance(vector1: Vector, vector2: Vector): number {
