@@ -1,8 +1,7 @@
 import { Vector } from "ts-matrix";
-import { Entity } from "../interfaces/entity.interface";
-import { Food } from "./food.model";
+import { IPlayer } from "../interfaces/player.interface";
 
-export class Player implements Entity{
+export class Player implements IPlayer {
     public id: number;
 
     public location: Vector;
@@ -12,8 +11,14 @@ export class Player implements Entity{
 
     public maxSpeed: number = 3;
 
-    constructor(coord: [number, number], private limits: [number, number]) {
-        this.id = Date.now() + Math.round(Math.random() * 100);
+    constructor(
+        coord: [number, number],
+        private limits: [number, number],
+        id?: number, 
+        maxSpeed?: number,
+    ) {
+        this.id = id || Date.now() + Math.round(Math.random() * 100);
+        this.maxSpeed = maxSpeed || 3;
 
         this.location = new Vector(coord);
         this.velocity = new Vector([0, 0]);

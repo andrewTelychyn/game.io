@@ -2,6 +2,7 @@ import { Injectable } from "@angular/core";
 import { Vector } from "ts-matrix";
 import { Config } from "../interfaces/config.interface";
 import { Entity } from "../interfaces/entity.interface";
+import { InitialPackage, UpdatePackage } from "../interfaces/package.interface";
 import { Food } from "../model/food.model";
 import { Player } from "../model/player.model";
 import { ConfigSevice } from "./config.service";
@@ -40,6 +41,35 @@ export class DataService {
         ], [this.maxWidth, this.maxHeight]);
 
         this.generateFood();
+    }
+
+    public initServerGame(data: InitialPackage): void {
+        this.player = new Player(
+            data.player.location as any, // REMOVE ANY
+            [this.maxWidth, this.maxHeight],
+            data.player.id,
+            data.player.maxSpeed
+        );
+
+        data.food.map(item => {
+            const food = new Food(
+                item.location as any,
+                item.id,
+                item.size
+            );
+            this.foods.push(food)
+        })
+    }
+
+    public updateServerGame(data: UpdatePackage): void {
+        data.food.map(item => {
+            const food = new Food(
+                item.location as any,
+                item.id,
+                item.size
+            );
+            this.foods.push(food)
+        })
     }
 
     public updateIteration(drawCallback: (entity: Entity, corection: [number, number]) => void): void {
