@@ -10,6 +10,7 @@ import { ConfigSevice } from "./config.service";
 })
 export class DataService {
     public player: Player | null = null;
+    public otherPlayers: Player[] = [];
     public foods: Entity[] = [];
     public playerMovement: BehaviorSubject<[number, number]> = new BehaviorSubject([0, 0]);
 
@@ -32,14 +33,12 @@ export class DataService {
     }
 
     public updatePackages(data: Partial<Package>): void {
-        console.log('update', data.food?.length);
 
         if (data.player) {
             this.player = { 
                 ...this.player,
                 ...data.player,
              };
-            // console.log(this.location);
         }
 
         if (data.food) {
@@ -61,10 +60,13 @@ export class DataService {
                 else if (Object.values(food).length > 1) newArray.push({ ...item, ...food });
 
                 this.foods.splice(index); 
-                // console.log(index);
             })
 
             this.foods = newArray.concat(this.foods);
+        }
+
+        if (data.otherPlayers) {
+            this.otherPlayers = data.otherPlayers;
         }
 
         if (data.gameInfo) {
@@ -80,8 +82,6 @@ export class DataService {
     public updateIteration(drawCallback: (entity: Entity, correction: [number, number]) => void): void {
         if (!this.player) return;
 
-        // const increase = this.checkFoodColision();
-
         let [x, y] = this.location;
         const halfWidth = this.canvasMaxWidth / 2;
         const halfHeight = this.canvasMaxHeight / 2;
@@ -96,10 +96,8 @@ export class DataService {
         
         this.foods.map(e => drawCallback(e, [x, y]));
 
-        // console.log(this.foods.length, this.player.location, x, y);
-
-        // this.player?.update(increase);
         drawCallback(this.player, [x, y]);
+        this.otherPlayers.map(o => drawCallback(o, [x, y]))
 
     }
 
@@ -111,14 +109,4 @@ export class DataService {
         if (key === 's') this.playerMovement.next([0, 1]);
         if (key === 'd') this.playerMovement.next([1, 0]);
     }
-
-    // private filterObjectOffRange(entities: Entity[]): Entity[] {
-        //     const [x, y] = this.location;
-
-        //     return entities.filter((e) => {
-    //         const [ex, ey] = e.location.values;
-    
-    //         return Math.abs(x - ex) < this.canvasMaxWidth / 1.5 || Math.abs(y - ey) < this.canvasMaxHeight / 1.5;
-    //     });
-    // }
 }

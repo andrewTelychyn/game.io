@@ -31,7 +31,6 @@ export class AppComponent implements AfterViewInit {
 
   private initKeyboardEvents(): void {
     fromEvent(document, 'keydown').subscribe((key: any) => {
-      // console.log(key)
       this.dataService.handleMove(key.key);
     })
   }

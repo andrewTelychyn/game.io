@@ -58,7 +58,6 @@ export class GameService {
             player: packagePlayer,
         };
 
-        // console.log(player.location);
         return updatePackage;
     }
 

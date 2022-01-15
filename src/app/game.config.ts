@@ -1,5 +1,5 @@
 export const GAME_CONFIG = {
-    FIELD_SIZE: [400, 400],
+    FIELD_SIZE: [600, 600],
     VIEW_AREA_COEF: 1,
     INTERVAL: 100,
     MAX_FOOD: 200,

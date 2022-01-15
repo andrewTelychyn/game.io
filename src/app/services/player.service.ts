@@ -55,29 +55,30 @@ export class PlayerService {
                 const [x, y] = p.location || [0, 0];
                 return (x > minx && x < maxx && y > miny && y < maxy)
             })
-            .filter((p) => this.checkColisions(player, p, sum))
+            .filter((p) => this.checkColisions(player, p))
             .map(p => ({
                 id: p.id,
                 location: p.location,
+                color: 'green',
+                size: p.size,
             }));
 
         if (player) {
-            sum = this.checkFoodColisions(player, sum);
+            this.checkFoodColisions(player);
             player.updated = true;
-            player.size = (player.size || 3) + sum;
         }
 
         return players;
     }
 
-    private checkColisions(player1: Player | undefined, player2: Player, sum: number): boolean {
+    private checkColisions(player1: Player | undefined, player2: Player): boolean {
         if (!player2.location || !player2.size) return false;
         if (!player1 || !player1.location || !player1.size) return true;
         
         const distance = this.getDistance(player1.location, player2.location);
         if (distance < player1.size && player1.size > player2.size) {
             // bug
-            sum += player2.size * GAME_CONFIG.EATING_COEF;
+            player1.size += player2.size * GAME_CONFIG.EATING_COEF;
             this.killPlayer(player2.id);
             return false;
         }
@@ -90,20 +91,16 @@ export class PlayerService {
         return true;
     }
 
-    private checkFoodColisions(player: Player, sum: number): number {
-        let sumout = sum;
-
+    private checkFoodColisions(player: Player): void {
         this.foodService.foods.map((f) => {
             if (!f.location) return;
             if (!player || !player.location || !player.size) return;
             
             if (this.getDistance(player.location, f.location) < player.size) {
-                sumout += (f.size || 1) * GAME_CONFIG.EATING_COEF;
+                player.size += (f.size || 1) * GAME_CONFIG.EATING_COEF;
                 f.updated = true;
             }
         });
-
-        return sumout;
     }
 
     private getDistance([x, y]: [number, number], [myx, myy]: [number, number]): number {

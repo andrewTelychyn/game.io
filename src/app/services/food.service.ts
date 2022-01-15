@@ -40,15 +40,15 @@ export class FoodService {
         const foods = this.foods.filter((f) => {
             const [x, y] = f.location || [0, 0];
             if (!(x > minx && x < maxx && y > miny && y < maxy)) {
-                
-                this.packageHistory[id] = this.packageHistory[id].filter(i => i !== f.id);
+
+                // this.packageHistory[id] = this.packageHistory[id].filter(i => i !== f.id);
                 return false;
             }
             else return true;
         })
-        
-        
-        return foods.filter(f => {
+
+        // future optimization, yet more of a bug 
+        return foods/*.filter(f => {
             if (f.updated) {
                 console.log('here');
                 return true;
@@ -59,7 +59,7 @@ export class FoodService {
             };
 
             return false;
-        }).map((f) => {
+        })*/.map((f) => {
             if (f.updated) {
                 console.log('here 2');
                 f.updated = false;
