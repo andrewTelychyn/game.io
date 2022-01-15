@@ -24,7 +24,7 @@ export class AppComponent implements AfterViewInit {
     this.socketService.init();
 
     const [height, width] = this.drawService.init(this.canvas);
-    this.dataService.initGame(width, height);
+    this.dataService.initCanvasRanges(width, height);
 
     this.initKeyboardEvents();
   }

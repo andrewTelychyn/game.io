@@ -13,11 +13,19 @@ export class SocketService {
     constructor(private dataService: DataService) {}
     
     public init(): void {
-        console.log('init')
         this.socket.on('init', (data) => {
-            console.log(data);
+            console.log('init');
+            this.dataService.updatePackages(data);
+        })
+
+        this.socket.on('update', (data) => {
+            this.dataService.updatePackages(data);
         })
     
         this.socket.emit('hello');
+
+        this.dataService.playerMovement.subscribe((data) => {
+            this.socket.emit('move', data);
+        })
     }
 }

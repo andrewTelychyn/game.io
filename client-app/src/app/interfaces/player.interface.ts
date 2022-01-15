@@ -1,7 +1,6 @@
-import { Vector } from "ts-matrix";
 import { Entity } from "./entity.interface";
 
-export interface IPlayer extends Entity {
-    velocity?: Vector;
+export interface Player extends Entity {
+    velocity?: [number, number];
     maxSpeed?: number;
 }

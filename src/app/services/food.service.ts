@@ -6,12 +6,15 @@ export class FoodService {
     private maxHeight!: number;
     private maxWidth!: number;
 
+    private packageHistory: { [id: number]: number[]} = {};
+
     constructor([width, height]: [number, number]) {
         this.maxHeight = height;
         this.maxWidth = width;
     }
 
     public removeFood(id: number): void {
+        console.log('removing food');
         this.foods = this.foods.filter(f => f.id !== id);
     }
 
@@ -24,19 +27,50 @@ export class FoodService {
                     Math.round(Math.random() * this.maxWidth),
                     Math.round(Math.random() * this.maxHeight),
                 ],
-
+                color: 'red',
             }
 
             this.foods.push(food);
         }
     }
 
-    public getVisibleFood([minx, miny]: [number, number], [maxx, maxy]: [number, number]): Entity[] {
-        const foods = this.foods.filter((f) => {
-            const [x, y] = f.location;
-            return (x > minx && x < maxx && y > miny && y < maxy)
-        })
+    public getFood(id: number, [minx, miny]: [number, number], [maxx, maxy]: [number, number]): Entity[] {
+        if (!this.packageHistory[id]) this.packageHistory[id] = []; 
 
-        return foods;
+        const foods = this.foods.filter((f) => {
+            const [x, y] = f.location || [0, 0];
+            if (!(x > minx && x < maxx && y > miny && y < maxy)) {
+                
+                this.packageHistory[id] = this.packageHistory[id].filter(i => i !== f.id);
+                return false;
+            }
+            else return true;
+        })
+        
+        
+        return foods.filter(f => {
+            if (f.updated) {
+                console.log('here');
+                return true;
+            }
+            if (!this.packageHistory[id].includes(f.id)) {
+                this.packageHistory[id].push(f.id);
+                return true
+            };
+
+            return false;
+        }).map((f) => {
+            if (f.updated) {
+                console.log('here 2');
+                f.updated = false;
+                this.removeFood(f.id);
+                return { id: f.id };
+            }
+            return f
+        });
+    }
+
+    public removePlayer(id: number): void {
+        if (this.packageHistory[id]) delete this.packageHistory[id];
     }
 }

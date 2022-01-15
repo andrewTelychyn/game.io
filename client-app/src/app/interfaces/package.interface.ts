@@ -1,16 +1,12 @@
 import { Entity } from "./entity.interface";
-import { IPlayer } from "./player.interface";
+import { Player } from "./player.interface";
 
-export interface UpdatePackage {
+export interface Package {
     food: Entity[],
-    otherPlayers: IPlayer[],
-}
-
-export interface InitialPackage {
-    food: Entity[],
-    player: IPlayer,
-    filedInfo: {
-        size: [number, number]
+    player: Player,
+    gameInfo: {
+        size: [number, number],
+        interval: number,
     },
-    otherPlayers: IPlayer[],
+    otherPlayers: Player[],
 }

@@ -1,5 +1,7 @@
 export interface Entity {
     id: number,
-    size: number,
-    location: [number, number]
+    updated?: boolean,
+    size?: number,
+    location?: [number, number],
+    color?: string,
 }

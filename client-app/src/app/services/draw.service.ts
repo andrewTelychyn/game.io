@@ -1,5 +1,6 @@
 import { ElementRef, Injectable } from "@angular/core";
 import { interval } from "rxjs";
+import { map, switchMap } from 'rxjs/operators';
 import { Vector } from "ts-matrix";
 import { Entity } from "../interfaces/entity.interface";
 import { ConfigSevice } from "./config.service";
@@ -22,7 +23,6 @@ export class DrawService {
         this.canvas = canvas;
         this.context = canvas.nativeElement.getContext('2d');
 
-        // this.addMouseEventListeners();
         this.startDrawingIteration();
 
         return [
@@ -35,35 +35,37 @@ export class DrawService {
         this.context?.clearRect(0, 0, this.canvas.nativeElement.clientWidth, this.canvas.nativeElement.clientWidth);
     }
 
-    private addMouseEventListeners(): void {
-        const rect = this.canvas.nativeElement.getBoundingClientRect();
-        this.canvas.nativeElement.addEventListener('mousemove', (e) => {
-            if (this.mousePosition) this.mousePosition = new Vector(this.getMousePos(e, rect));
-        });
+    // private addMouseEventListeners(): void {
+    //     const rect = this.canvas.nativeElement.getBoundingClientRect();
+    //     this.canvas.nativeElement.addEventListener('mousemove', (e) => {
+    //         if (this.mousePosition) this.mousePosition = new Vector(this.getMousePos(e, rect));
+    //     });
         
-        this.canvas.nativeElement.addEventListener(
-            'mouseenter',
-            (e) => (this.mousePosition = new Vector(this.getMousePos(e, rect)))
-        );
-        this.canvas.nativeElement.addEventListener('mouseleave', (e) => (this.mousePosition = null));
-    }
+    //     this.canvas.nativeElement.addEventListener(
+    //         'mouseenter',
+    //         (e) => (this.mousePosition = new Vector(this.getMousePos(e, rect)))
+    //     );
+    //     this.canvas.nativeElement.addEventListener('mouseleave', (e) => (this.mousePosition = null));
+    // }
 
     private startDrawingIteration() {
-        const config = this.configService.configSubject.value;
-
-        interval(config.drawingInterval).subscribe((val) => {
-
-            this.context?.clearRect(0, 0, this.canvas.nativeElement.clientWidth, this.canvas.nativeElement.clientWidth);
-            
-            this.dataService.updateIteration(this.drawEntity.bind(this));
-        });
+        this.configService.configSubject
+            .pipe(
+                map((obj) => obj.drawingInterval),
+                switchMap((value) => interval(value))
+            )
+            .subscribe(() => {
+                this.context?.clearRect(0, 0, this.canvas.nativeElement.clientWidth, this.canvas.nativeElement.clientWidth);
+                this.dataService.updateIteration(this.drawEntity.bind(this));
+        })
     }
 
     private drawEntity(entity: Entity, [cx, cy]: [number, number]): void {
-        if (!this.context) return;
+        if (!this.context || !entity.location || !entity.size || !entity.color) return;
     
         this.context?.beginPath();
-        let [x, y] = entity.location.values;
+
+        let [x, y] = entity.location;
         x -= cx;
         y -= cy;
 
@@ -76,10 +78,10 @@ export class DrawService {
         // this.context.stroke();
     }
 
-    private getMousePos(evt: MouseEvent, rect: DOMRect) {
-        return [
-            (evt.clientX - rect.left) / (rect.right - rect.left) * this.canvas.nativeElement.width,
-            (evt.clientY - rect.top) / (rect.bottom - rect.top) * this.canvas.nativeElement.height
-        ];
-    }
+    // private getMousePos(evt: MouseEvent, rect: DOMRect) {
+    //     return [
+    //         (evt.clientX - rect.left) / (rect.right - rect.left) * this.canvas.nativeElement.width,
+    //         (evt.clientY - rect.top) / (rect.bottom - rect.top) * this.canvas.nativeElement.height
+    //     ];
+    // }
 }

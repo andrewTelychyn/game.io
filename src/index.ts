@@ -31,6 +31,7 @@ io.on("connection", (socket) => {
     })
 
     socket.on('hello', () => console.log('hello'));
+    socket.on('move', (data) => game.movePlayer(id, data));
 });
 
 io.listen(enviroment.serverPort);

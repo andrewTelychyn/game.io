@@ -1,10 +1,11 @@
-import { InitialPackage } from "./initial.package.interface";
+import { Package } from "./package.interface";
 
 export interface ServerToClientEvents {
-    init: (data: InitialPackage) => void,
-    update: (data: Partial<InitialPackage>) => void,
+    init: (data: Package) => void,
+    update: (data: Partial<Package>) => void,
 }
 
 export interface ClientToServerEvents {
     hello: () => void;
+    move: (direct: [number, number]) => void;
 }

@@ -1,10 +1,8 @@
 import { Injectable } from "@angular/core";
-import { Vector } from "ts-matrix";
-import { Config } from "../interfaces/config.interface";
+import { BehaviorSubject } from "rxjs";
 import { Entity } from "../interfaces/entity.interface";
-import { InitialPackage, UpdatePackage } from "../interfaces/package.interface";
-import { Food } from "../model/food.model";
-import { Player } from "../model/player.model";
+import { Package } from "../interfaces/package.interface";
+import { Player } from "../interfaces/player.interface";
 import { ConfigSevice } from "./config.service";
 
 @Injectable({
@@ -12,7 +10,8 @@ import { ConfigSevice } from "./config.service";
 })
 export class DataService {
     public player: Player | null = null;
-    public foods: Food[] = [];
+    public foods: Entity[] = [];
+    public playerMovement: BehaviorSubject<[number, number]> = new BehaviorSubject([0, 0]);
 
     private maxWidth!: number;
     private maxHeight!: number;
@@ -23,59 +22,65 @@ export class DataService {
     constructor(private configService: ConfigSevice) {}
 
     get location (): [number, number] {
-        if (!this.player) return [0, 0];
-        return this.player.location.values as [number, number];
+        if (!this.player || !this.player.location) return [0, 0];
+        return this.player.location;
     };
 
-    public initGame(maxWidth: number, maxHeight: number): void {
-        const config = this.configService.configSubject.value;
-
-        this.canvasMaxHeight = maxHeight;
-        this.canvasMaxWidth = maxWidth;
-
-        [this.maxWidth, this.maxHeight] = config.fieldSize;
-
-        this.player = new Player([
-            Math.round(Math.random() * this.maxWidth),
-            Math.round(Math.random() * this.maxHeight)
-        ], [this.maxWidth, this.maxHeight]);
-
-        this.generateFood();
+    public initCanvasRanges(maxWidth: number, maxHeight: number): void {
+            this.canvasMaxHeight = maxHeight;
+            this.canvasMaxWidth = maxWidth;
     }
 
-    public initServerGame(data: InitialPackage): void {
-        this.player = new Player(
-            data.player.location as any, // REMOVE ANY
-            [this.maxWidth, this.maxHeight],
-            data.player.id,
-            data.player.maxSpeed
-        );
+    public updatePackages(data: Partial<Package>): void {
+        console.log('update', data.food?.length);
 
-        data.food.map(item => {
-            const food = new Food(
-                item.location as any,
-                item.id,
-                item.size
-            );
-            this.foods.push(food)
-        })
+        if (data.player) {
+            this.player = { 
+                ...this.player,
+                ...data.player,
+             };
+            // console.log(this.location);
+        }
+
+        if (data.food) {
+            const newArray: Entity[] = [];
+
+            data.food.map((food) => {
+                if (!food) return;
+
+                let index = -1;
+                const item = this.foods.find((f, i) => {
+                    if (f.id === food.id) {
+                        index = i;
+                        return true;
+                    }
+                    return false;
+                });
+                
+                if (!item || index < 0) newArray.push(food);
+                else if (Object.values(food).length > 1) newArray.push({ ...item, ...food });
+
+                this.foods.splice(index); 
+                // console.log(index);
+            })
+
+            this.foods = newArray.concat(this.foods);
+        }
+
+        if (data.gameInfo) {
+            [this.maxWidth, this.maxHeight] = data.gameInfo.size;
+
+            this.configService.update({ 
+                fieldSize: data.gameInfo.size,
+                drawingInterval: data.gameInfo.interval,  
+            });
+        }
     }
 
-    public updateServerGame(data: UpdatePackage): void {
-        data.food.map(item => {
-            const food = new Food(
-                item.location as any,
-                item.id,
-                item.size
-            );
-            this.foods.push(food)
-        })
-    }
-
-    public updateIteration(drawCallback: (entity: Entity, corection: [number, number]) => void): void {
+    public updateIteration(drawCallback: (entity: Entity, correction: [number, number]) => void): void {
         if (!this.player) return;
 
-        const increase = this.checkFoodColision();
+        // const increase = this.checkFoodColision();
 
         let [x, y] = this.location;
         const halfWidth = this.canvasMaxWidth / 2;
@@ -89,9 +94,11 @@ export class DataService {
         else if (this.maxHeight - halfHeight < y) y = this.maxHeight - this.canvasMaxHeight;
         else y -= halfHeight;
         
-        this.filterObjectOffRange(this.foods).map(e => drawCallback(e, [x, y]));
+        this.foods.map(e => drawCallback(e, [x, y]));
 
-        this.player?.update(increase);
+        // console.log(this.foods.length, this.player.location, x, y);
+
+        // this.player?.update(increase);
         drawCallback(this.player, [x, y]);
 
     }
@@ -99,54 +106,19 @@ export class DataService {
     public handleMove(key: string): void {
         if (!this.player) return;
 
-        if (key === 'w') this.player.move([0, -1]);
-        if (key === 'a') this.player.move([-1, 0]);
-        if (key === 's') this.player.move([0, 1]);
-        if (key === 'd') this.player.move([1, 0]);
+        if (key === 'w') this.playerMovement.next([0, -1]);
+        if (key === 'a') this.playerMovement.next([-1, 0]);
+        if (key === 's') this.playerMovement.next([0, 1]);
+        if (key === 'd') this.playerMovement.next([1, 0]);
     }
 
-    private checkFoodColision(): number {
-        const config = this.configService.configSubject.value;
-        let sum: number = 0;
+    // private filterObjectOffRange(entities: Entity[]): Entity[] {
+        //     const [x, y] = this.location;
 
-        this.foods = this.foods.filter((f) => {
-            if (!this.player) return true;
-
-            if (this.getDistance(this.player.location, f.location) < this.player.size) {
-                console.log(this.getDistance(this.player.location, f.location), this.player.size);
-                sum += f.size * config.eatingCoef;
-                return false;
-            }
-            return true;
-        });
-
-        return sum;
-    }
-
-    private generateFood(): void {
-        const config = this.configService.configSubject.value;
-
-        for(let i = 0; i < config.maxFood; i++) {
-            this.foods.push(new Food([
-                Math.round(Math.random() * this.maxWidth),
-                Math.round(Math.random() * this.maxHeight)
-            ]));
-        }
-    }
-
-    private filterObjectOffRange(entities: Entity[]): Entity[] {
-        const [x, y] = this.location;
-
-        return entities.filter((e) => {
-            const [ex, ey] = e.location.values;
-
-            return Math.abs(x - ex) < this.canvasMaxWidth / 1.5 || Math.abs(y - ey) < this.canvasMaxHeight / 1.5;
-        });
-    }
-
-    private getDistance(vector1: Vector, vector2: Vector): number {
-        let [x, y] = vector1.values;
-        let [myx, myy] = vector2.values;
-        return Math.sqrt((x - myx)**2 + (y - myy)**2)
-    }
+        //     return entities.filter((e) => {
+    //         const [ex, ey] = e.location.values;
+    
+    //         return Math.abs(x - ex) < this.canvasMaxWidth / 1.5 || Math.abs(y - ey) < this.canvasMaxHeight / 1.5;
+    //     });
+    // }
 }
